@@ -67,6 +67,19 @@ p { margin: 0 0 .9em; text-align: justify; orphans: 2; widows: 2; }
 """
 
 
+# Только для --engine pagedjs: в шапке страницы -- название главы и таймкод
+# ПЕРВОГО абзаца этой страницы (string() = первое значение на странице).
+# Chrome не поддерживает string-set, поэтому там таймкод только у абзацев.
+CSS_PAGEDJS = """
+@page { @top-center { content: string(chapter) "  \\00b7  " string(page-time);
+  font: 8.3pt Georgia, serif; letter-spacing: .03em; color: #666; } }
+@page :first { @top-center { content: none; } }
+.chap { string-set: chapter content(); }
+.tc, .ptc { string-set: page-time content(); }
+.ptc { display: inline-block; width: 0; overflow: hidden; color: transparent; }
+"""
+
+
 def fmt_tc(t):
     h, m, s = int(t // 3600), int(t % 3600 // 60), int(t % 60)
     return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
@@ -151,6 +164,8 @@ def main():
     ap.add_argument("--no-images", action="store_true")
     ap.add_argument("--out")
     ap.add_argument("--chrome")
+    ap.add_argument("--engine", choices=["chrome", "pagedjs"], default="chrome",
+                    help="pagedjs -- таймкод страницы в шапке (нужен node/npx, pagedjs-cli скачается сам)")
     ap.add_argument("--keep-html")
     args = ap.parse_args()
     book = Book(args.book)
@@ -171,7 +186,8 @@ def main():
 
     lang = book["origLang"] if args.mode == "orig" else book["transLang"]
     parts = [f"<!doctype html><html lang='{lang}'><head><meta charset='utf-8'><title>{e(book['title'])}</title>"
-             f"<style>{CSS_COMMON}{CSS_PARALLEL if args.mode == 'parallel' else CSS_SINGLE}</style></head><body>"]
+             f"<style>{CSS_COMMON}{CSS_PARALLEL if args.mode == 'parallel' else CSS_SINGLE}"
+             f"{CSS_PAGEDJS if args.engine == 'pagedjs' else ''}</style></head><body>"]
     parts.append(f"<div class='front'><h1>{e(book['title'])}</h1>"
                  f"<div class='sub'>{e(book.get('subtitle', ''))}</div></div>")
 
@@ -185,7 +201,7 @@ def main():
             parts.append(f"<tr class='head{nxt}'><td class='o'><span class='num'>{ch['ruNum']}</span>"
                          f"<span class='name'>{e(sv_title)}</span></td>"
                          f"<td class='t'><span class='num'>{ch['ruNum']}</span>"
-                         f"<span class='name'>{e(ch['ruTitle'])}</span></td></tr>")
+                         f"<span class='name chap'>{e(ch['ruTitle'])}</span></td></tr>")
             for r in rows:
                 before, after = figs(ci, r["tr"], "before"), figs(ci, r["tr"], "after")
                 if before:
@@ -197,11 +213,13 @@ def main():
         else:
             title = sv_title if args.mode == "orig" else ch["ruTitle"]
             parts.append(f"<section><h2><span class='num'>{ch['ruNum']}</span>"
-                         f"<span class='name'>{e(title)}</span></h2>")
+                         f"<span class='name chap'>{e(title)}</span></h2>")
             paras = book_paragraphs(ch, cues, args.mode) or [(r["orig"], r["tr"]) for r in rows]
             for text, tr in paras:
                 parts.append(figs(ci, tr, "before"))
-                parts.append(f"<p>{e(text)}</p>")
+                t0 = ch["ruLines"][tr[0]]["start"] if tr else ch["timeStart"]
+                tc = f"<span class='ptc'>{fmt_tc(t0)}</span>" if args.engine == "pagedjs" else ""
+                parts.append(f"<p>{tc}{e(text)}</p>")
                 parts.append(figs(ci, tr, "after"))
             parts.append("</section>")
     if args.mode == "parallel":
@@ -214,9 +232,12 @@ def main():
         hp = args.keep_html or os.path.join(td, "book.html")
         with open(hp, "w", encoding="utf-8") as f:
             f.write("\n".join(parts))
-        subprocess.run([find_chrome(args.chrome), "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
-                        "--allow-file-access-from-files", f"--print-to-pdf={out}", "file://" + os.path.abspath(hp)],
-                       check=True, capture_output=True)
+        if args.engine == "pagedjs":
+            subprocess.run(["npx", "-y", "pagedjs-cli@0.4.3", "-i", os.path.abspath(hp), "-o", out], check=True)
+        else:
+            subprocess.run([find_chrome(args.chrome), "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+                            "--allow-file-access-from-files", f"--print-to-pdf={out}", "file://" + os.path.abspath(hp)],
+                           check=True, capture_output=True)
     print(f"Wrote {out}")
 
 

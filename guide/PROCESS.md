@@ -125,6 +125,7 @@ python3 tools/align_literary.py --srt books/my-book/build/sv.srt \
 python3 tools/build_html.py books/my-book                  # index.html рядом с audio.mp3
 python3 tools/build_pdf.py books/my-book                   # build/my-book-parallel.pdf
 python3 tools/build_pdf.py books/my-book --mode orig       # книжка только на шведском
+python3 tools/build_pdf.py books/my-book --engine pagedjs  # + в шапке страницы глава и таймкод страницы (node/npx)
 python3 tools/split_chapters.py books/my-book              # build/tracks/NN - Глава N.mp3 (Yoto и т.п.)
 python3 tools/serve.py books/my-book                       # http://localhost:8934/
 ```
