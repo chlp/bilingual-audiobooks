@@ -24,6 +24,7 @@
 | `tts.lengthScale` | `1.08` | скорость, больше — медленнее |
 | `tts.cache` | `build/tts_cache` | кеш озвучки |
 | `cover`, `about` | — | карточка в каталоге сайта |
+| `favicon` | `player/favicon.svg` | своя иконка вкладки (svg/png), встраивается в страницу |
 
 ## text/chNN.txt (маршруты B, C)
 

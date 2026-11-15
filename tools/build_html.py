@@ -15,6 +15,7 @@ scenes.json / images.json -- список {"chapter": N, "file": "ch09/01.png",
 предупреждением.
 """
 import argparse
+import base64
 import html
 import json
 import os
@@ -24,6 +25,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bookcfg import REPO, Book, load_data  # noqa: E402
 
 TEMPLATE = os.path.join(REPO, "player", "template.html")
+
+
+def icons(book):
+    """Иконки встраиваются data URI: страница книги -- самодостаточная папка.
+    Своя иконка книги -- book.json "favicon" (svg/png), иначе общая из player/."""
+    own = book.get("favicon")
+    svg_path = book.path("favicon") if own else os.path.join(REPO, "player", "favicon.svg")
+    with open(svg_path, "rb") as f:
+        raw = f.read()
+    mime = "image/svg+xml" if svg_path.endswith(".svg") else "image/png"
+    fav = f"data:{mime};base64," + base64.b64encode(raw).decode()
+    with open(os.path.join(REPO, "player", "apple-touch-icon.png"), "rb") as f:
+        touch = "data:image/png;base64," + base64.b64encode(f.read()).decode()
+    return fav, (fav if own and mime == "image/png" else touch)
 WEB_WIDTH = 1200
 
 
@@ -116,7 +131,10 @@ def main():
     e = html.escape
     with open(TEMPLATE, encoding="utf-8") as f:
         page = f.read()
+    fav, touch = icons(book)
     repl = {
+        "__FAVICON_SVG__": fav,
+        "__TOUCH_ICON__": touch,
         "__UI_LANG__": book["transLang"],
         "__PAGE_TITLE__": e(book["title"]),
         "__HEADER_TITLE__": e(book["title"]),
