@@ -1,0 +1,43 @@
+[
+  {"id": "01-01", "chapter": 1, "file": "ch01/01.png", "pos": "after",
+   "anchor": "Булле маленький, коричневый",
+   "refs": ["characters"],
+   "title": "Элла и Булле дома",
+   "prompt": "Ella sits on the floor of a cozy living room hugging Bulle, both look happy; morning light through the window. Only Ella and Bulle in the scene."},
+
+  {"id": "01-02", "chapter": 1, "file": "ch01/02.png", "pos": "after",
+   "anchor": "Внутри лежит синий воздушный змей",
+   "refs": ["characters", "prop-drake"],
+   "title": "Синий змей в посылке",
+   "prompt": "Ella kneels by an opened long flat cardboard parcel on the kitchen table and lifts out the blue kite, eyes wide with delight; Bulle puts his front paws on the table edge; Ella's mother stands behind smiling. Morfar is NOT in this scene."},
+
+  {"id": "02-01", "chapter": 2, "file": "ch02/01.png", "pos": "after",
+   "anchor": "Дедушка стоит на крыльце и машет",
+   "refs": ["characters", "loc-stuga"],
+   "title": "Дедушка встречает на крыльце",
+   "prompt": "Morfar Sven stands on the porch of his red cottage waving; Ella runs toward him holding the blue kite, Bulle running beside her; Ella's mother walks behind with a bag."},
+
+  {"id": "02-02", "chapter": 2, "file": "ch02/02.png", "pos": "after",
+   "anchor": "Змей летит всё выше и выше",
+   "refs": ["characters", "loc-kulle", "prop-drake"],
+   "title": "Змей над холмом",
+   "prompt": "On top of the grassy hill next to the big grey boulder, Ella holds the kite string with both hands, the blue kite flies high in a bright sky with its yellow tail dancing; Morfar stands beside her pointing up; Bulle jumps; the lake and the red cottage far below. Ella's mother is NOT in this scene."},
+
+  {"id": "03-01", "chapter": 3, "file": "ch03/01.png", "pos": "after",
+   "anchor": "Он застревает высоко на яблоне",
+   "refs": ["characters", "loc-stuga", "prop-drake"],
+   "title": "Змей застрял на яблоне",
+   "prompt": "The blue kite is stuck high in the branches of the old apple tree next to the red cottage, its yellow tail hanging down; Ella stands below looking up sadly, Bulle sitting next to her. Morfar and Ella's mother are NOT in this scene."},
+
+  {"id": "03-02", "chapter": 3, "file": "ch03/02.png", "pos": "after",
+   "anchor": "Он достаёт змея и красное яблоко",
+   "refs": ["characters", "loc-stuga", "prop-drake"],
+   "title": "Дедушка на лестнице",
+   "prompt": "Morfar on a wooden ladder leaning against the apple tree, reaching up and holding the blue kite in one hand and a red apple in the other; Ella holds the ladder with both hands, Bulle gently pulls Ella's jacket with his teeth. Ella's mother is NOT in this scene."},
+
+  {"id": "03-03", "chapter": 3, "file": "ch03/03.png", "pos": "after",
+   "anchor": "Синий змей отдыхает рядом с ними",
+   "refs": ["characters", "loc-stuga", "prop-drake"],
+   "title": "Вечер на крыльце",
+   "prompt": "Evening: Ella and Morfar sit side by side on the porch steps of the red cottage, seen slightly from behind, looking at the lake in golden sunset light; Bulle asleep at their feet; the blue kite rests against the porch railing beside them. Ella's mother is NOT in this scene."}
+]

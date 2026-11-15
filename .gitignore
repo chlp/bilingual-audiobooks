@@ -1,0 +1,19 @@
+# Личные книги: аудио, тексты, картинки, сборки. Наружу не уходят.
+/books/*
+!/books/README.md
+
+# Примеры: в git только исходники (book.json, text/, illustrations/),
+# собранное публикуется в docs/ через tools/publish.py
+/examples/*/audio.mp3
+/examples/*/index.html
+/examples/*/build/
+/examples/*/illustrations/web/
+
+# Голоса Piper (большие, скачиваются tools/get_voice.sh)
+/voices/
+
+# Окружения
+.venv-*/
+__pycache__/
+*.pyc
+.DS_Store

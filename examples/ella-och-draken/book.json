@@ -1,0 +1,20 @@
+{
+  "slug": "ella-och-draken",
+  "title": "Ella och den blå draken",
+  "route": "tts",
+  "origLang": "sv",
+  "transLang": "ru",
+  "origLabel": "Svenska (озвучка TTS)",
+  "transLabel": "Русский перевод",
+  "origShort": "SV",
+  "transShort": "RU",
+  "audio": "audio.mp3",
+  "data": "build/data.json",
+  "tts": {
+    "voice": "voices/sv_SE-nst-medium.onnx",
+    "lengthScale": 1.15,
+    "cache": "build/tts_cache"
+  },
+  "subtitle": "Элла и синий воздушный змей",
+  "about": "Короткая сказка-пример (3 главы, ~3 мин). Текст написан для этого репозитория, озвучка — Piper TTS, голос sv_SE-nst-medium (CC0)."
+}

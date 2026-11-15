@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ella och den blå draken</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --panel-bg: #ffffff;
+    --text: #24211c;
+    --muted: #7a7468;
+    --border: #e4ddcf;
+    --accent: #b5502f;
+    --accent-soft: #f3ded4;
+    --orig-highlight: #fff3c4;
+    --trans-highlight: #fde3d6;
+    --shadow: rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17140f;
+      --panel-bg: #211d16;
+      --text: #ece6da;
+      --muted: #9c9384;
+      --border: #3a3427;
+      --accent: #e0854f;
+      --accent-soft: #3a2a1e;
+      --orig-highlight: #4a3f1a;
+      --trans-highlight: #4a2e22;
+      --shadow: rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  /* fixed + inset вместо height:100vh: на iPad 100vh больше видимой области,
+     документ начинает скроллиться и шапка уезжает вверх */
+  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+
+  header {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-bg);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    box-shadow: 0 1px 4px var(--shadow);
+    z-index: 2;
+  }
+  header h1 {
+    font-size: 15px; margin: 0; font-weight: 600; color: var(--accent);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw;
+  }
+  select, button {
+    font-size: 13px; padding: 5px 9px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    cursor: pointer;
+  }
+  button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  audio { flex: 1 1 260px; min-width: 220px; height: 32px; }
+  .ctrl-group { display: flex; gap: 6px; align-items: center; }
+  .ctrl-group label { font-size: 12px; color: var(--muted); }
+
+  #panels { flex: 1 1 auto; display: flex; overflow: hidden; min-height: 0; }
+  .panel {
+    flex: 1 1 50%;
+    overflow-y: auto;
+    padding: 24px 28px 40vh 28px;
+    scroll-behavior: smooth;
+    min-height: 0;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .panel + .panel { border-left: 1px solid var(--border); }
+  .panel-title {
+    position: sticky; top: -24px; margin: -24px -28px 18px -28px; padding: 10px 28px;
+    background: var(--panel-bg); border-bottom: 1px solid var(--border);
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    z-index: 1;
+  }
+  .chapter-heading { font-size: 18px; font-weight: 700; margin: 0 0 16px 0; color: var(--accent); }
+
+  .line {
+    padding: 5px 8px; border-radius: 6px; margin-bottom: 3px; cursor: pointer;
+    line-height: 1.55; font-size: var(--font-size, 16px);
+  }
+  .line:hover { background: var(--accent-soft); }
+  .orig-line.current { background: var(--orig-highlight); font-weight: 600; }
+  .trans-line.current { background: var(--trans-highlight); font-weight: 600; }
+  .line.new-para { margin-top: 16px; }
+
+  /* Режим одного языка: вторая колонка скрыта, текст по центру узкой колонкой */
+  #panels.only-orig #transPanel, #panels.only-trans #origPanel { display: none; }
+  #panels.only-trans #transPanel { border-left: none; }
+  #panels.only-orig .panel > :not(.panel-title),
+  #panels.only-trans .panel > :not(.panel-title) {
+    max-width: 760px; margin-left: auto; margin-right: auto;
+  }
+
+  figure.illus { margin: 14px 0; cursor: pointer; }
+  figure.illus img {
+    display: block; width: 100%; height: auto; max-width: 560px; margin: 0 auto;
+    border-radius: 10px; box-shadow: 0 2px 8px var(--shadow);
+  }
+
+  footer {
+    flex: 0 0 auto;
+    padding: 6px 16px; border-top: 1px solid var(--border); background: var(--panel-bg);
+    font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; gap: 12px;
+  }
+  .hint { font-size: 11px; color: var(--muted); }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 48px; transform: translateX(-50%);
+    max-width: min(92vw, 640px); padding: 10px 14px; border-radius: 8px;
+    background: var(--text); color: var(--bg); font-size: 13px;
+    box-shadow: 0 4px 16px var(--shadow); word-break: break-all;
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10;
+  }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 700px) {
+    .panel { padding: 16px 14px 40vh 14px; }
+    .panel-title { top: -16px; margin: -16px -14px 12px -14px; padding: 8px 14px; }
+    header h1 { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Ella och den blå draken</h1>
+    <audio id="audio" controls preload="metadata" src="audio.mp3"></audio>
+    <div class="ctrl-group">
+      <label for="chapterSelect">Глава:</label>
+      <select id="chapterSelect"></select>
+    </div>
+    <div class="ctrl-group">
+      <label for="langSelect">Текст:</label>
+      <select id="langSelect">
+        <option value="both">SV + RU</option>
+        <option value="orig">Только SV</option>
+        <option value="trans">Только RU</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <label for="rateSelect">Скорость:</label>
+      <select id="rateSelect">
+        <option value="0.75">0.75x</option>
+        <option value="0.9">0.9x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.1">1.1x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+      </select>
+    </div>
+    <button id="autoScrollBtn" class="active">Автопрокрутка</button>
+    <div class="ctrl-group">
+      <label>Шрифт:</label>
+      <button id="fontMinus">A-</button>
+      <button id="fontPlus">A+</button>
+    </div>
+    <button id="copyLinkBtn" title="Скопировать ссылку на текущее место">Ссылка на место</button>
+  </header>
+  <div id="panels">
+    <div class="panel" id="origPanel">
+      <div class="panel-title">Svenska (озвучка TTS)</div>
+      <div id="origHeading" class="chapter-heading"></div>
+      <div id="origContent"></div>
+    </div>
+    <div class="panel" id="transPanel">
+      <div class="panel-title">Русский перевод</div>
+      <div id="transHeading" class="chapter-heading"></div>
+      <div id="transContent"></div>
+    </div>
+  </div>
+  <footer>
+    <span id="statusLine">—</span>
+    <span class="hint">Клик по строке — переход к этому месту в аудио. «Ссылка на место» копирует ссылку, которая откроет книгу здесь же.</span>
+  </footer>
+</div>
+<div id="toast"></div>
+
+<script>
+// Формат DATA описан в guide/FORMATS.md. cues -- реплики оригинала с точными
+// таймкодами; chapters[i].ruLines -- строки перевода (исторически "ru", но язык
+// любой), svStart/svEnd -- ГЛОБАЛЬНЫЕ индексы в cues.
+const CFG = {"slug": "ella-och-draken", "title": "Ella och den blå draken"};
+const DATA = {"cues": [{"start": 0.0, "end": 3.239, "text": "Ella och den blå draken. En saga.", "para": 0}, {"start": 5.739, "end": 9.234, "text": "Kapitel 1. Ett paket från morfar", "para": 0}, {"start": 11.034, "end": 14.505, "text": "Ella bor i ett gult hus i en liten stad.", "para": 1}, {"start": 14.955, "end": 17.927, "text": "Hon är sex år och har röda flätor.", "para": 1}, {"start": 18.377, "end": 21.384, "text": "Hennes bästa vän är hunden Bulle.", "para": 1}, {"start": 21.834, "end": 25.19, "text": "Bulle är liten, brun och har ett vitt öra.", "para": 1}, {"start": 26.19, "end": 28.465, "text": "En morgon ringer det på dörren.", "para": 2}, {"start": 28.915, "end": 32.444, "text": "– Ett paket till Ella! säger brevbäraren.", "para": 2}, {"start": 32.894, "end": 35.158, "text": "Paketet är långt och platt.", "para": 2}, {"start": 35.608, "end": 37.652, "text": "På det står det: Från morfar Sven.", "para": 2}, {"start": 38.652, "end": 41.16, "text": "Ella öppnar paketet försiktigt.", "para": 3}, {"start": 41.609, "end": 45.719, "text": "Inuti ligger en blå drake med en lång gul svans.", "para": 3}, {"start": 46.169, "end": 49.397, "text": "På draken har morfar målat en glad sol.", "para": 3}, {"start": 49.847, "end": 52.448, "text": "Det finns också ett litet brev.", "para": 3}, {"start": 53.448, "end": 55.735, "text": "– Kära Ella, läser mamma högt.", "para": 4}, {"start": 56.185, "end": 58.007, "text": "– Kom till mig på lördag.", "para": 4}, {"start": 58.457, "end": 60.861, "text": "– Vid sjön blåser det alltid.", "para": 4}, {"start": 61.311, "end": 62.959, "text": "– Kram, morfar.", "para": 4}, {"start": 63.409, "end": 65.998, "text": "Ella hoppar av glädje, och Bulle skäller.", "para": 4}, {"start": 68.498, "end": 71.784, "text": "Kapitel 2. Vinden på kullen", "para": 0}, {"start": 73.584, "end": 76.719, "text": "På lördag åker Ella och mamma till morfar.", "para": 1}, {"start": 77.169, "end": 81.418, "text": "Morfar bor i en röd stuga vid en blank sjö.", "para": 1}, {"start": 81.868, "end": 85.026, "text": "Stugan har vita hörn och en grön dörr.", "para": 1}, {"start": 85.476, "end": 89.017, "text": "Bredvid stugan står ett gammalt äppelträd.", "para": 1}, {"start": 90.017, "end": 92.954, "text": "Morfar står på trappan och vinkar.", "para": 2}, {"start": 93.404, "end": 96.516, "text": "Han har ett vitt skägg och en randig mössa.", "para": 2}, {"start": 96.966, "end": 99.868, "text": "– Har du draken med dig? frågar han.", "para": 2}, {"start": 100.318, "end": 104.196, "text": "– Ja! ropar Ella och visar den blå draken.", "para": 2}, {"start": 105.196, "end": 107.982, "text": "De går upp på kullen bakom stugan.", "para": 3}, {"start": 108.432, "end": 111.126, "text": "Där uppe ligger en stor grå sten.", "para": 3}, {"start": 111.576, "end": 114.083, "text": "Vinden tar tag i draken.", "para": 3}, {"start": 114.533, "end": 117.215, "text": "Draken flyger högre och högre.", "para": 3}, {"start": 117.665, "end": 120.777, "text": "Den gula svansen dansar i luften.", "para": 3}, {"start": 121.227, "end": 124.895, "text": "– Titta, morfar, solen flyger! skrattar Ella.", "para": 3}, {"start": 127.395, "end": 131.888, "text": "Kapitel 3. Draken i äppelträdet", "para": 0}, {"start": 133.688, "end": 137.067, "text": "Plötsligt kommer en stark vindpust.", "para": 1}, {"start": 137.517, "end": 140.141, "text": "Snöret glider ur Ellas händer.", "para": 1}, {"start": 140.591, "end": 143.099, "text": "Draken flyger ner mot stugan.", "para": 1}, {"start": 143.549, "end": 146.73, "text": "Den fastnar högt uppe i äppelträdet.", "para": 1}, {"start": 147.73, "end": 149.518, "text": "Ella blir ledsen.", "para": 2}, {"start": 149.968, "end": 153.381, "text": "– Nu är draken borta, säger hon tyst.", "para": 2}, {"start": 153.831, "end": 156.327, "text": "– Inte alls, säger morfar.", "para": 2}, {"start": 156.777, "end": 158.495, "text": "– Vi hämtar stegen.", "para": 2}, {"start": 159.495, "end": 162.363, "text": "Morfar ställer stegen mot trädet.", "para": 3}, {"start": 162.813, "end": 166.702, "text": "Ella håller i stegen, och Bulle håller i Ellas jacka.", "para": 3}, {"start": 167.152, "end": 170.554, "text": "Morfar klättrar upp och sträcker ut handen.", "para": 3}, {"start": 171.004, "end": 174.44, "text": "Han får tag i draken och ett rött äpple.", "para": 3}, {"start": 175.44, "end": 179.4, "text": "– Draken var hungrig, säger morfar och blinkar.", "para": 4}, {"start": 179.849, "end": 184.122, "text": "Ella skrattar och tar en stor tugga av äpplet.", "para": 4}, {"start": 184.572, "end": 188.032, "text": "På kvällen sitter de på trappan och tittar på sjön.", "para": 4}, {"start": 188.482, "end": 191.21, "text": "Den blå draken vilar bredvid dem.", "para": 4}, {"start": 191.66, "end": 194.69, "text": "I morgon ska den flyga igen.", "para": 4}], "chapters": [{"index": 0, "svRawTitle": "Kapitel 1. Ett paket från morfar", "svTitle": "Ett paket från morfar", "ruTitle": "Посылка от дедушки", "ruNum": 1, "timeStart": 0.0, "timeEnd": 68.498, "cueStart": 0, "cueEnd": 19, "ruLines": [{"text": "Элла и синий воздушный змей. Сказка.", "start": 0.0, "end": 3.239, "para": 0, "svStart": 0, "svEnd": 0}, {"text": "Глава 1. Посылка от дедушки", "start": 5.739, "end": 9.234, "para": 0, "svStart": 1, "svEnd": 1}, {"text": "Элла живёт в жёлтом доме в маленьком городе.", "start": 11.034, "end": 14.505, "para": 1, "svStart": 2, "svEnd": 2}, {"text": "Ей шесть лет, и у неё рыжие косички.", "start": 14.955, "end": 17.927, "para": 1, "svStart": 3, "svEnd": 3}, {"text": "Её лучший друг — пёс Булле.", "start": 18.377, "end": 21.384, "para": 1, "svStart": 4, "svEnd": 4}, {"text": "Булле маленький, коричневый, и одно ухо у него белое.", "start": 21.834, "end": 25.19, "para": 1, "svStart": 5, "svEnd": 5}, {"text": "Однажды утром в дверь звонят.", "start": 26.19, "end": 28.465, "para": 2, "svStart": 6, "svEnd": 6}, {"text": "— Посылка для Эллы! — говорит почтальон.", "start": 28.915, "end": 32.444, "para": 2, "svStart": 7, "svEnd": 7}, {"text": "Посылка длинная и плоская.", "start": 32.894, "end": 35.158, "para": 2, "svStart": 8, "svEnd": 8}, {"text": "На ней написано: «От дедушки Свена».", "start": 35.608, "end": 37.652, "para": 2, "svStart": 9, "svEnd": 9}, {"text": "Элла осторожно открывает посылку.", "start": 38.652, "end": 41.16, "para": 3, "svStart": 10, "svEnd": 10}, {"text": "Внутри лежит синий воздушный змей с длинным жёлтым хвостом.", "start": 41.609, "end": 45.719, "para": 3, "svStart": 11, "svEnd": 11}, {"text": "На змее дедушка нарисовал весёлое солнце.", "start": 46.169, "end": 49.397, "para": 3, "svStart": 12, "svEnd": 12}, {"text": "Там есть ещё маленькое письмо.", "start": 49.847, "end": 52.448, "para": 3, "svStart": 13, "svEnd": 13}, {"text": "— «Дорогая Элла», — читает мама вслух.", "start": 53.448, "end": 55.735, "para": 4, "svStart": 14, "svEnd": 14}, {"text": "— «Приезжай ко мне в субботу.", "start": 56.185, "end": 58.007, "para": 4, "svStart": 15, "svEnd": 15}, {"text": "У озера всегда дует ветер.", "start": 58.457, "end": 60.861, "para": 4, "svStart": 16, "svEnd": 16}, {"text": "Обнимаю, дедушка».", "start": 61.311, "end": 62.959, "para": 4, "svStart": 17, "svEnd": 17}, {"text": "Элла прыгает от радости, а Булле лает.", "start": 63.409, "end": 65.998, "para": 4, "svStart": 18, "svEnd": 18}], "ruParaCount": 5, "titleLines": 2}, {"index": 1, "svRawTitle": "Kapitel 2. Vinden på kullen", "svTitle": "Vinden på kullen", "ruTitle": "Ветер на холме", "ruNum": 2, "timeStart": 68.498, "timeEnd": 127.395, "cueStart": 19, "cueEnd": 34, "ruLines": [{"text": "Глава 2. Ветер на холме", "start": 68.498, "end": 71.784, "para": 0, "svStart": 19, "svEnd": 19}, {"text": "В субботу Элла и мама едут к дедушке.", "start": 73.584, "end": 76.719, "para": 1, "svStart": 20, "svEnd": 20}, {"text": "Дедушка живёт в красном домике у блестящего озера.", "start": 77.169, "end": 81.418, "para": 1, "svStart": 21, "svEnd": 21}, {"text": "У домика белые углы и зелёная дверь.", "start": 81.868, "end": 85.026, "para": 1, "svStart": 22, "svEnd": 22}, {"text": "Рядом с домиком стоит старая яблоня.", "start": 85.476, "end": 89.017, "para": 1, "svStart": 23, "svEnd": 23}, {"text": "Дедушка стоит на крыльце и машет.", "start": 90.017, "end": 92.954, "para": 2, "svStart": 24, "svEnd": 24}, {"text": "У него белая борода и полосатая шапка.", "start": 93.404, "end": 96.516, "para": 2, "svStart": 25, "svEnd": 25}, {"text": "— Ты взяла змея? — спрашивает он.", "start": 96.966, "end": 99.868, "para": 2, "svStart": 26, "svEnd": 26}, {"text": "— Да! — кричит Элла и показывает синего змея.", "start": 100.318, "end": 104.196, "para": 2, "svStart": 27, "svEnd": 27}, {"text": "Они поднимаются на холм за домиком.", "start": 105.196, "end": 107.982, "para": 3, "svStart": 28, "svEnd": 28}, {"text": "Наверху лежит большой серый камень.", "start": 108.432, "end": 111.126, "para": 3, "svStart": 29, "svEnd": 29}, {"text": "Ветер подхватывает змея.", "start": 111.576, "end": 114.083, "para": 3, "svStart": 30, "svEnd": 30}, {"text": "Змей летит всё выше и выше.", "start": 114.533, "end": 117.215, "para": 3, "svStart": 31, "svEnd": 31}, {"text": "Жёлтый хвост танцует в воздухе.", "start": 117.665, "end": 120.777, "para": 3, "svStart": 32, "svEnd": 32}, {"text": "— Смотри, дедушка, солнце летит! — смеётся Элла.", "start": 121.227, "end": 124.895, "para": 3, "svStart": 33, "svEnd": 33}], "ruParaCount": 4, "titleLines": 1}, {"index": 2, "svRawTitle": "Kapitel 3. Draken i äppelträdet", "svTitle": "Draken i äppelträdet", "ruTitle": "Змей на яблоне", "ruNum": 3, "timeStart": 127.395, "timeEnd": 195.69, "cueStart": 34, "cueEnd": 52, "ruLines": [{"text": "Глава 3. Змей на яблоне", "start": 127.395, "end": 131.888, "para": 0, "svStart": 34, "svEnd": 34}, {"text": "Вдруг налетает сильный порыв ветра.", "start": 133.688, "end": 137.067, "para": 1, "svStart": 35, "svEnd": 35}, {"text": "Верёвка выскальзывает у Эллы из рук.", "start": 137.517, "end": 140.141, "para": 1, "svStart": 36, "svEnd": 36}, {"text": "Змей летит вниз, к домику.", "start": 140.591, "end": 143.099, "para": 1, "svStart": 37, "svEnd": 37}, {"text": "Он застревает высоко на яблоне.", "start": 143.549, "end": 146.73, "para": 1, "svStart": 38, "svEnd": 38}, {"text": "Элла расстраивается.", "start": 147.73, "end": 149.518, "para": 2, "svStart": 39, "svEnd": 39}, {"text": "— Теперь змея больше нет, — тихо говорит она.", "start": 149.968, "end": 153.381, "para": 2, "svStart": 40, "svEnd": 40}, {"text": "— Вовсе нет, — говорит дедушка.", "start": 153.831, "end": 156.327, "para": 2, "svStart": 41, "svEnd": 41}, {"text": "— Принесём лестницу.", "start": 156.777, "end": 158.495, "para": 2, "svStart": 42, "svEnd": 42}, {"text": "Дедушка ставит лестницу к дереву.", "start": 159.495, "end": 162.363, "para": 3, "svStart": 43, "svEnd": 43}, {"text": "Элла держит лестницу, а Булле держит Эллу за куртку.", "start": 162.813, "end": 166.702, "para": 3, "svStart": 44, "svEnd": 44}, {"text": "Дедушка залезает и протягивает руку.", "start": 167.152, "end": 170.554, "para": 3, "svStart": 45, "svEnd": 45}, {"text": "Он достаёт змея и красное яблоко.", "start": 171.004, "end": 174.44, "para": 3, "svStart": 46, "svEnd": 46}, {"text": "— Змей проголодался, — говорит дедушка и подмигивает.", "start": 175.44, "end": 179.4, "para": 4, "svStart": 47, "svEnd": 47}, {"text": "Элла смеётся и откусывает большой кусок яблока.", "start": 179.849, "end": 184.122, "para": 4, "svStart": 48, "svEnd": 48}, {"text": "Вечером они сидят на крыльце и смотрят на озеро.", "start": 184.572, "end": 188.032, "para": 4, "svStart": 49, "svEnd": 49}, {"text": "Синий змей отдыхает рядом с ними.", "start": 188.482, "end": 191.21, "para": 4, "svStart": 50, "svEnd": 50}, {"text": "Завтра он снова полетит.", "start": 191.66, "end": 194.69, "para": 4, "svStart": 51, "svEnd": 51}], "ruParaCount": 5, "titleLines": 1}], "duration": 195.69};
+const IMAGES = {};   // {chapterIdx: [{tr, orig, pos, src, t}]}
+const cues = DATA.cues;
+const chapters = DATA.chapters;
+const KEY = 'bab:' + CFG.slug;     // префикс localStorage для этой книги
+
+const $ = id => document.getElementById(id);
+const audio = $('audio');
+const chapterSelect = $('chapterSelect');
+const rateSelect = $('rateSelect');
+const autoScrollBtn = $('autoScrollBtn');
+const origPanel = $('origPanel'), transPanel = $('transPanel');
+const origContent = $('origContent'), transContent = $('transContent');
+const statusLine = $('statusLine');
+const langSelect = $('langSelect');
+const panels = $('panels');
+const toast = $('toast');
+
+function lsGet(k, def) { try { const v = localStorage.getItem(KEY + ':' + k); return v === null ? def : v; } catch (e) { return def; } }
+function lsSet(k, v) { try { localStorage.setItem(KEY + ':' + k, v); } catch (e) {} }
+
+let autoScroll = lsGet('autoScroll', '1') === '1';
+let fontSize = parseInt(lsGet('font', '16'), 10) || 16;
+let currentChapterIndex = -1;
+let currentCueIndex = -1;
+let currentTrIndex = -1;
+// Перемотка до загрузки метаданных (iOS не грузит mp3 до первого play):
+// запоминаем цель и применяем на loadedmetadata/play.
+let pendingSeek = null;
+
+chapters.forEach((ch, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = `${ch.ruNum}. ${ch.ruTitle}`;
+  chapterSelect.appendChild(opt);
+});
+
+function fmtTime(t) {
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = Math.floor(t % 60);
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+function findChapterIndex(t) {
+  for (let i = chapters.length - 1; i >= 0; i--) if (t >= chapters[i].timeStart) return i;
+  return 0;
+}
+
+// последний элемент arr[lo..hi) со start <= t
+function lastStartBefore(arr, t, lo = 0, hi = arr.length) {
+  let a = lo, b = hi - 1, ans = lo;
+  while (a <= b) {
+    const mid = (a + b) >> 1;
+    if (arr[mid].start <= t) { ans = mid; a = mid + 1; } else b = mid - 1;
+  }
+  return ans;
+}
+
+function getTime() { return pendingSeek !== null ? pendingSeek : audio.currentTime; }
+
+function seek(t, play) {
+  t = Math.max(0, Math.min(t, DATA.duration || t));
+  if (audio.readyState >= 1) { audio.currentTime = t; pendingSeek = null; }
+  else pendingSeek = t;
+  syncTo(t, true);
+  savePosition();
+  if (play) audio.play();
+}
+function applyPendingSeek() {
+  if (pendingSeek !== null && audio.readyState >= 1) {
+    audio.currentTime = pendingSeek;
+    pendingSeek = null;
+  }
+}
+audio.addEventListener('loadedmetadata', applyPendingSeek);
+audio.addEventListener('canplay', applyPendingSeek);
+audio.addEventListener('play', applyPendingSeek);
+
+function makeFigure(img) {
+  const fig = document.createElement('figure');
+  fig.className = 'illus';
+  const im = document.createElement('img');
+  im.src = img.src;
+  im.alt = '';
+  im.loading = 'lazy';
+  // размеры заранее: иначе lazy-картинки сдвигают текст и восстановленная прокрутка уезжает
+  if (img.w && img.h) { im.width = img.w; im.height = img.h; }
+  im.addEventListener('error', () => fig.remove());  // картинка ещё не нарисована
+  fig.appendChild(im);
+  fig.addEventListener('click', () => seek(img.t, true));
+  return fig;
+}
+
+function renderChapter(idx) {
+  const ch = chapters[idx];
+  currentChapterIndex = idx;
+  currentCueIndex = -1;
+  currentTrIndex = -1;
+
+  $('origHeading').textContent = `${ch.ruNum}. ${ch.svTitle || ch.ruTitle}`;
+  $('transHeading').textContent = `${ch.ruNum}. ${ch.ruTitle}`;
+  const imgs = IMAGES[idx] || [];
+  const at = (key, i, pos) => imgs.filter(im => im[key] === i && im.pos === pos);
+
+  origContent.innerHTML = '';
+  let prevPara = null;
+  for (let c = ch.cueStart; c < ch.cueEnd; c++) {
+    const div = document.createElement('div');
+    div.className = 'line orig-line';
+    if (cues[c].para !== undefined && prevPara !== null && cues[c].para !== prevPara) div.classList.add('new-para');
+    prevPara = cues[c].para;
+    div.dataset.i = c;
+    div.textContent = cues[c].text;
+    div.addEventListener('click', () => seek(cues[c].start, true));
+    at('orig', c, 'before').forEach(im => origContent.appendChild(makeFigure(im)));
+    origContent.appendChild(div);
+    at('orig', c, 'after').forEach(im => origContent.appendChild(makeFigure(im)));
+  }
+
+  transContent.innerHTML = '';
+  prevPara = null;
+  ch.ruLines.forEach((rl, ri) => {
+    const div = document.createElement('div');
+    div.className = 'line trans-line';
+    if (prevPara !== null && rl.para !== prevPara) div.classList.add('new-para');
+    prevPara = rl.para;
+    div.dataset.i = ri;
+    div.textContent = rl.text;
+    div.addEventListener('click', () => seek(rl.start, true));
+    at('tr', ri, 'before').forEach(im => transContent.appendChild(makeFigure(im)));
+    transContent.appendChild(div);
+    at('tr', ri, 'after').forEach(im => transContent.appendChild(makeFigure(im)));
+  });
+
+  chapterSelect.value = idx;
+  if ('mediaSession' in navigator) {
+    try { navigator.mediaSession.metadata = new MediaMetadata({ title: `${ch.ruNum}. ${ch.ruTitle}`, album: CFG.title }); } catch (e) {}
+  }
+}
+
+// Не scrollIntoView: тот прокручивает и все предки, включая окно, и на iPad
+// из-за этого шапка уезжает. Прокручиваем только саму колонку.
+function centerInPanel(el, instant) {
+  const panel = el.closest('.panel');
+  if (!panel.offsetParent) return;
+  const pr = panel.getBoundingClientRect();
+  const er = el.getBoundingClientRect();
+  const top = panel.scrollTop + (er.top - pr.top) - (panel.clientHeight - er.height) / 2;
+  panel.scrollTo({ top: Math.max(0, top), behavior: instant ? 'auto' : 'smooth' });
+}
+
+function setCurrent(container, idx, scroll) {
+  const prev = container.querySelector('.line.current');
+  if (prev) prev.classList.remove('current');
+  const el = container.querySelector(`.line[data-i="${idx}"]`);
+  if (el) {
+    el.classList.add('current');
+    if (scroll) centerInPanel(el);
+  }
+}
+
+// Подсветить строки, соответствующие моменту t. scroll -- прокрутить к ним.
+function syncTo(t, scroll) {
+  const chIdx = findChapterIndex(t);
+  if (chIdx !== currentChapterIndex) renderChapter(chIdx);
+  const ch = chapters[chIdx];
+
+  const cueIdx = lastStartBefore(cues, t, ch.cueStart, ch.cueEnd);
+  if (cueIdx !== currentCueIndex || scroll) setCurrent(origContent, cueIdx, scroll);
+  currentCueIndex = cueIdx;
+
+  if (ch.ruLines.length) {
+    const trIdx = lastStartBefore(ch.ruLines, t);
+    if (trIdx !== currentTrIndex || scroll) setCurrent(transContent, trIdx, scroll);
+    currentTrIndex = trIdx;
+  }
+  statusLine.textContent = `Глава ${ch.ruNum} — ${fmtTime(t)} / ${fmtTime(DATA.duration)}`;
+}
+
+let lastAuto = { cue: -1, tr: -1 };
+audio.addEventListener('timeupdate', () => {
+  if (pendingSeek !== null) return;   // ещё не перемотались: не затирать позицию нулём
+  const t = audio.currentTime;
+  const prevCue = currentCueIndex, prevTr = currentTrIndex, prevCh = currentChapterIndex;
+  syncTo(t, false);
+  if (autoScroll && (currentCueIndex !== prevCue || currentTrIndex !== prevTr || currentChapterIndex !== prevCh)) {
+    const a = origContent.querySelector('.line.current'); if (a) centerInPanel(a);
+    const b = transContent.querySelector('.line.current'); if (b) centerInPanel(b);
+  }
+  throttledSave();
+});
+
+chapterSelect.addEventListener('change', () => {
+  const idx = parseInt(chapterSelect.value, 10);
+  renderChapter(idx);
+  seek(chapters[idx].timeStart + 0.05, false);
+  origPanel.scrollTop = 0; transPanel.scrollTop = 0;
+});
+rateSelect.addEventListener('change', () => {
+  audio.playbackRate = parseFloat(rateSelect.value);
+  lsSet('rate', rateSelect.value);
+});
+autoScrollBtn.classList.toggle('active', autoScroll);
+autoScrollBtn.addEventListener('click', () => {
+  autoScroll = !autoScroll;
+  autoScrollBtn.classList.toggle('active', autoScroll);
+  lsSet('autoScroll', autoScroll ? '1' : '0');
+});
+
+function applyLang(mode) {
+  panels.classList.toggle('only-orig', mode === 'orig');
+  panels.classList.toggle('only-trans', mode === 'trans');
+  langSelect.value = mode;
+  lsSet('lang', mode);
+  panels.querySelectorAll('.line.current').forEach(el => centerInPanel(el, true));
+}
+langSelect.addEventListener('change', () => applyLang(langSelect.value));
+
+function applyFontSize() {
+  document.documentElement.style.setProperty('--font-size', fontSize + 'px');
+  lsSet('font', fontSize);
+}
+$('fontMinus').addEventListener('click', () => { fontSize = Math.max(12, fontSize - 1); applyFontSize(); });
+$('fontPlus').addEventListener('click', () => { fontSize = Math.min(32, fontSize + 1); applyFontSize(); });
+
+// ---- Запоминание места: глава, время аудио, прокрутка обеих колонок ----
+function savePosition() {
+  if (currentChapterIndex < 0) return;
+  lsSet('pos', JSON.stringify({
+    ch: currentChapterIndex, t: Math.round(getTime() * 10) / 10,
+    so: Math.round(origPanel.scrollTop), st: Math.round(transPanel.scrollTop),
+  }));
+}
+let saveTimer = null;
+function throttledSave() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => { saveTimer = null; savePosition(); }, 1500);
+}
+let scrollTimer = null;
+[origPanel, transPanel].forEach(p => p.addEventListener('scroll', () => {
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(savePosition, 400);
+}, { passive: true }));
+audio.addEventListener('pause', savePosition);
+window.addEventListener('pagehide', savePosition);
+document.addEventListener('visibilitychange', () => { if (document.hidden) savePosition(); });
+
+// ---- Ссылка на место: #t=<секунды> ----
+function isVisibleIn(el, panel) {
+  const pr = panel.getBoundingClientRect(), er = el.getBoundingClientRect();
+  return er.bottom > pr.top + 30 && er.top < pr.bottom;
+}
+// Место = текущая строка, если её видно; иначе первая видимая строка колонки
+// (пользователь пролистал текст на паузе).
+function placeTime() {
+  const panel = origPanel.offsetParent ? origPanel : transPanel;
+  const content = panel === origPanel ? origContent : transContent;
+  const cur = content.querySelector('.line.current');
+  if (cur && isVisibleIn(cur, panel)) return getTime();
+  const ch = chapters[currentChapterIndex];
+  for (const el of content.querySelectorAll('.line')) {
+    if (isVisibleIn(el, panel)) {
+      const i = parseInt(el.dataset.i, 10);
+      return panel === origPanel ? cues[i].start : ch.ruLines[i].start;
+    }
+  }
+  return getTime();
+}
+function showToast(text) {
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => toast.classList.remove('show'), 3500);
+}
+async function copyText(text) {
+  // writeText может не ответить (нет разрешения / file://) -- не ждём дольше секунды
+  try {
+    const ok = await Promise.race([
+      navigator.clipboard.writeText(text).then(() => true),
+      new Promise(r => setTimeout(() => r(false), 1000)),
+    ]);
+    if (ok) return true;
+  } catch (e) {}
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) {}
+  ta.remove();
+  return ok;
+}
+$('copyLinkBtn').addEventListener('click', async () => {
+  const t = Math.max(0, Math.floor(placeTime() * 10) / 10);
+  const url = location.href.split('#')[0] + '#t=' + t;
+  const ok = await copyText(url);
+  showToast((ok ? 'Ссылка скопирована: ' : 'Скопируйте ссылку: ') + url);
+});
+
+function timeFromHash() {
+  const m = location.hash.match(/[#&]t=([\d.]+)/);
+  if (m) return parseFloat(m[1]);
+  const c = location.hash.match(/[#&]ch=(\d+)/);   // #ch=<номер главы из книги>
+  if (c) {
+    const ch = chapters.find(x => x.ruNum === parseInt(c[1], 10));
+    if (ch) return ch.timeStart + 0.05;
+  }
+  return null;
+}
+function openFromHash() {
+  const t = timeFromHash();
+  if (t === null) return false;
+  seek(t, false);
+  history.replaceState(null, '', location.pathname + location.search);  // перезагрузка -> сохранённое место
+  return true;
+}
+window.addEventListener('hashchange', openFromHash);
+
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || e.target.closest('select, button, input, audio, textarea')) return;
+  e.preventDefault();
+  audio.paused ? audio.play() : audio.pause();
+});
+
+// ---- init ----
+applyFontSize();
+{
+  const r = lsGet('rate', '1');
+  if ([...rateSelect.options].some(o => o.value === r)) { rateSelect.value = r; audio.playbackRate = parseFloat(r); }
+  const lang = lsGet('lang', 'both');
+  panels.classList.toggle('only-orig', lang === 'orig');
+  panels.classList.toggle('only-trans', lang === 'trans');
+  langSelect.value = ['both', 'orig', 'trans'].includes(lang) ? lang : 'both';
+}
+if (!openFromHash()) {
+  let pos = null;
+  try { pos = JSON.parse(lsGet('pos', 'null')); } catch (e) {}
+  if (pos && chapters[pos.ch]) {
+    renderChapter(pos.ch);
+    pendingSeek = pos.t;
+    applyPendingSeek();
+    syncTo(pos.t, false);
+    // прокрутку восстанавливаем после раскладки (картинки lazy, высота уже известна)
+    requestAnimationFrame(() => {
+      origPanel.style.scrollBehavior = transPanel.style.scrollBehavior = 'auto';
+      origPanel.scrollTop = pos.so || 0;
+      transPanel.scrollTop = pos.st || 0;
+      origPanel.style.scrollBehavior = transPanel.style.scrollBehavior = '';
+    });
+  } else {
+    renderChapter(0);
+    syncTo(0, false);
+  }
+}
+</script>
+</body>
+</html>
