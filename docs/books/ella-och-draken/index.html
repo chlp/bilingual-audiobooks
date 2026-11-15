@@ -100,6 +100,17 @@
     max-width: 760px; margin-left: auto; margin-right: auto;
   }
 
+  .chapter-nav { margin: 0 0 14px 0; }
+  .chapter-nav.next { margin: 28px 0 0 0; }
+  .chapter-nav button {
+    width: 100%; text-align: left; padding: 10px 12px; font-size: 14px;
+    border-radius: 8px; color: var(--accent); background: transparent;
+  }
+  .chapter-nav button:hover { background: var(--accent-soft); }
+  .chapter-nav .dir { display: block; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em; }
+  .chapter-nav:empty { display: none; }
+
   figure.illus { margin: 14px 0; cursor: pointer; }
   figure.illus img {
     display: block; width: 100%; height: auto; max-width: 560px; margin: 0 auto;
@@ -168,13 +179,17 @@
   <div id="panels">
     <div class="panel" id="origPanel">
       <div class="panel-title">Svenska (озвучка TTS)</div>
+      <div class="chapter-nav prev"></div>
       <div id="origHeading" class="chapter-heading"></div>
       <div id="origContent"></div>
+      <div class="chapter-nav next"></div>
     </div>
     <div class="panel" id="transPanel">
       <div class="panel-title">Русский перевод</div>
+      <div class="chapter-nav prev"></div>
       <div id="transHeading" class="chapter-heading"></div>
       <div id="transContent"></div>
+      <div class="chapter-nav next"></div>
     </div>
   </div>
   <footer>
@@ -323,10 +338,40 @@ function renderChapter(idx) {
     at('tr', ri, 'after').forEach(im => transContent.appendChild(makeFigure(im)));
   });
 
+  renderChapterNav(idx);
   chapterSelect.value = idx;
   if ('mediaSession' in navigator) {
     try { navigator.mediaSession.metadata = new MediaMetadata({ title: `${ch.ruNum}. ${ch.ruTitle}`, album: CFG.title }); } catch (e) {}
   }
+}
+
+// Ссылки «Предыдущая глава» над заголовком и «Следующая глава» под текстом,
+// в обеих колонках; названия -- на языке колонки.
+function renderChapterNav(idx) {
+  const make = (target, dir, orig) => {
+    const ch = chapters[target];
+    const b = document.createElement('button');
+    const d = document.createElement('span');
+    d.className = 'dir';
+    d.textContent = dir;
+    b.append(d, `${ch.ruNum}. ${orig ? (ch.svTitle || ch.ruTitle) : ch.ruTitle}`);
+    b.addEventListener('click', () => goToChapter(target));
+    return b;
+  };
+  [[origPanel, true], [transPanel, false]].forEach(([panel, orig]) => {
+    const prev = panel.querySelector('.chapter-nav.prev');
+    const next = panel.querySelector('.chapter-nav.next');
+    prev.innerHTML = ''; next.innerHTML = '';
+    if (idx > 0) prev.append(make(idx - 1, 'Предыдущая глава', orig));
+    if (idx < chapters.length - 1) next.append(make(idx + 1, 'Следующая глава', orig));
+  });
+}
+
+function goToChapter(idx) {
+  const playing = !audio.paused;
+  renderChapter(idx);
+  seek(chapters[idx].timeStart + 0.05, playing);
+  origPanel.scrollTop = 0; transPanel.scrollTop = 0;
 }
 
 // Не scrollIntoView: тот прокручивает и все предки, включая окно, и на iPad
@@ -381,12 +426,7 @@ audio.addEventListener('timeupdate', () => {
   throttledSave();
 });
 
-chapterSelect.addEventListener('change', () => {
-  const idx = parseInt(chapterSelect.value, 10);
-  renderChapter(idx);
-  seek(chapters[idx].timeStart + 0.05, false);
-  origPanel.scrollTop = 0; transPanel.scrollTop = 0;
-});
+chapterSelect.addEventListener('change', () => goToChapter(parseInt(chapterSelect.value, 10)));
 rateSelect.addEventListener('change', () => {
   audio.playbackRate = parseFloat(rateSelect.value);
   lsSet('rate', rateSelect.value);
