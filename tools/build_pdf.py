@@ -6,7 +6,7 @@ PDF книги из того же data.json, что и плеер, с иллюс
     python3 tools/build_pdf.py books/<slug> --mode trans       # только перевод, A5
 
 Вёрстка -- HTML, печать через headless Google Chrome (нужен Chrome; путь
-можно задать --chrome). Параллельный режим: таблица «абзац оригинала --
+можно задать --chrome). Параллельный режим: строки «абзац оригинала --
 абзац перевода», у каждого абзаца мелкий таймкод аудио, чтобы по бумажной
 книге легко найти место в записи. Результат: build/<slug>-<mode>.pdf.
 """
@@ -47,14 +47,15 @@ CSS_PARALLEL = """
 @page { size: A4; margin: 18mm 15mm 16mm;
   @bottom-center { content: counter(page); font: 9pt Georgia, serif; color: #888; } }
 html { font-size: 10pt; line-height: 1.5; }
-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-td { width: 50%; vertical-align: top; padding: 0 4mm 3mm; text-align: justify; }
-td.o { padding-left: 0; border-right: .5pt solid #ddd; }
-td.t { padding-right: 0; }
-tr.head td { padding-top: 8mm; padding-bottom: 5mm; text-align: left; }
-tr.head.next { break-before: page; }
-tr { break-inside: avoid; }
-td.fig { padding: 0 0 3mm; border: none; }
+/* div + flex, не таблица: pagedjs плохо режет таблицы между страницами
+   (теряет строки с картинками) */
+.row { display: flex; break-inside: avoid; margin: 0 0 3mm; }
+.row > div { flex: 1 1 50%; min-width: 0; text-align: justify; }
+.row > .o { padding-right: 4mm; border-right: .5pt solid #ddd; }
+.row > .t { padding-left: 4mm; }
+.row.head { margin: 8mm 0 5mm; }
+.row.head > div { text-align: left; }
+.row.head.next { break-before: page; }
 """
 
 CSS_SINGLE = """
@@ -80,6 +81,9 @@ CSS_PAGEDJS = """
 """
 
 
+MAX_ROW_CHARS = 700
+
+
 def fmt_tc(t):
     h, m, s = int(t // 3600), int(t % 3600 // 60), int(t % 60)
     return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
@@ -101,8 +105,21 @@ def paragraphs(ch, cues):
     rows, last_hi = [], ch["cueStart"] - 1
     if skip:
         last_hi = max(r["svEnd"] for r in ch["ruLines"][:skip])
+    # Длинный абзац режется на куски: строка таблицы выше страницы ломает
+    # pagedjs (молча обрезает документ) и плохо читается в Chrome.
+    chunks = []
     for p in order:
-        idx = groups[p]
+        cur, size = [], 0
+        for i in groups[p]:
+            n = len(ch["ruLines"][i]["text"])
+            if cur and size + n > MAX_ROW_CHARS:
+                chunks.append(cur)
+                cur, size = [], 0
+            cur.append(i)
+            size += n
+        if cur:
+            chunks.append(cur)
+    for idx in chunks:
         lines = [ch["ruLines"][i] for i in idx]
         lo, hi = min(r["svStart"] for r in lines), max(r["svEnd"] for r in lines)
         trans = " ".join(r["text"] for r in lines)
@@ -191,25 +208,21 @@ def main():
     parts.append(f"<div class='front'><h1>{e(book['title'])}</h1>"
                  f"<div class='sub'>{e(book.get('subtitle', ''))}</div></div>")
 
-    if args.mode == "parallel":
-        parts.append("<table><tbody>")
     for ci, ch in enumerate(data["chapters"]):
         sv_title = ch.get("svTitle") or ch.get("svRawTitle", "").strip(" –-")
         rows = paragraphs(ch, cues)
         if args.mode == "parallel":
             nxt = " next" if ci else ""
-            parts.append(f"<tr class='head{nxt}'><td class='o'><span class='num'>{ch['ruNum']}</span>"
-                         f"<span class='name'>{e(sv_title)}</span></td>"
-                         f"<td class='t'><span class='num'>{ch['ruNum']}</span>"
-                         f"<span class='name chap'>{e(ch['ruTitle'])}</span></td></tr>")
+            parts.append(f"<div class='row head{nxt}'><div class='o'><span class='num'>{ch['ruNum']}</span>"
+                         f"<span class='name'>{e(sv_title)}</span></div>"
+                         f"<div class='t'><span class='num'>{ch['ruNum']}</span>"
+                         f"<span class='name chap'>{e(ch['ruTitle'])}</span></div></div>")
             for r in rows:
                 before, after = figs(ci, r["tr"], "before"), figs(ci, r["tr"], "after")
-                if before:
-                    parts.append(f"<tr><td class='fig' colspan='2'>{before}</td></tr>")
-                parts.append(f"<tr><td class='o'><span class='tc'>{fmt_tc(r['time'])}</span>{e(r['orig'])}</td>"
-                             f"<td class='t'>{e(r['trans'])}</td></tr>")
-                if after:
-                    parts.append(f"<tr><td class='fig' colspan='2'>{after}</td></tr>")
+                parts.append(before)
+                parts.append(f"<div class='row'><div class='o'><span class='tc'>{fmt_tc(r['time'])}</span>{e(r['orig'])}</div>"
+                             f"<div class='t'>{e(r['trans'])}</div></div>")
+                parts.append(after)
         else:
             title = sv_title if args.mode == "orig" else ch["ruTitle"]
             parts.append(f"<section><h2><span class='num'>{ch['ruNum']}</span>"
@@ -222,8 +235,6 @@ def main():
                 parts.append(f"<p>{tc}{e(text)}</p>")
                 parts.append(figs(ci, tr, "after"))
             parts.append("</section>")
-    if args.mode == "parallel":
-        parts.append("</tbody></table>")
     parts.append("</body></html>")
 
     out = os.path.abspath(args.out or book.path("build", f"{book['slug']}-{args.mode}.pdf"))
@@ -233,7 +244,9 @@ def main():
         with open(hp, "w", encoding="utf-8") as f:
             f.write("\n".join(parts))
         if args.engine == "pagedjs":
-            subprocess.run(["npx", "-y", "pagedjs-cli@0.4.3", "-i", os.path.abspath(hp), "-o", out], check=True)
+            # тайм-аут по умолчанию мал: книга с картинками молча обрезается на середине
+            subprocess.run(["npx", "-y", "pagedjs-cli@0.4.3", "-t", "1800000",
+                            "-i", os.path.abspath(hp), "-o", out], check=True)
         else:
             subprocess.run([find_chrome(args.chrome), "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
                             "--allow-file-access-from-files", f"--print-to-pdf={out}", "file://" + os.path.abspath(hp)],
