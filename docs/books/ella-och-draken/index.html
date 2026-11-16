@@ -119,9 +119,19 @@
     text-transform: uppercase; letter-spacing: .06em; }
   .chapter-nav:empty { display: none; }
 
-  figure.illus { margin: 14px 0; cursor: pointer; }
+  /* Картинка закрепляется под заголовком колонки, текст листается под ней.
+     Каждая картинка -- в своей секции (.illus-sec) вместе с текстом до следующей:
+     sticky держится до конца секции, потом новая картинка выталкивает старую.
+     Высота картинки -- не больше половины колонки (--illus-h, считает JS),
+     чтобы текста было видно не меньше половины экрана. */
+  figure.illus {
+    margin: 6px 0 0; padding: 8px 0; cursor: pointer;
+    position: sticky; top: var(--stick-top, 10px); z-index: 1;
+    background: var(--bg);
+  }
   figure.illus img {
-    display: block; width: 100%; height: auto; max-width: 560px; margin: 0 auto;
+    display: block; height: auto; margin: 0 auto;
+    width: min(100%, 560px, calc(var(--illus-h, 40vh) * var(--ar, 1.5)));
     border-radius: 10px; box-shadow: 0 2px 8px var(--shadow);
   }
 
@@ -299,11 +309,55 @@ function makeFigure(img) {
   im.alt = '';
   im.loading = 'lazy';
   // размеры заранее: иначе lazy-картинки сдвигают текст и восстановленная прокрутка уезжает
-  if (img.w && img.h) { im.width = img.w; im.height = img.h; }
+  if (img.w && img.h) {
+    im.width = img.w; im.height = img.h;
+    im.style.setProperty('--ar', (img.w / img.h).toFixed(4));
+  }
   im.addEventListener('error', () => fig.remove());  // картинка ещё не нарисована
   fig.appendChild(im);
   fig.addEventListener('click', () => seek(img.t, true));
   return fig;
+}
+
+// Колонка из секций: новая секция начинается с каждой картинки (см. CSS figure.illus).
+function sectionWriter(content) {
+  let cur = content;
+  return {
+    line(div) { cur.appendChild(div); },
+    figure(img) {
+      cur = document.createElement('div');
+      cur.className = 'illus-sec';
+      cur.appendChild(makeFigure(img));
+      content.appendChild(cur);
+    },
+  };
+}
+
+// Место под закреплённую картинку: под заголовком колонки, высотой до половины колонки.
+function layoutIllus() {
+  const title = [...panels.querySelectorAll('.panel-title')].find(el => el.offsetHeight);
+  if (!title) return;
+  const panel = title.closest('.panel');
+  const padTop = parseFloat(getComputedStyle(panel).paddingTop) || 0;
+  const titleH = title.offsetHeight;
+  panels.style.setProperty('--stick-top', (titleH - padTop) + 'px');
+  // 16 -- вертикальные отступы figure (padding 8+8)
+  panels.style.setProperty('--illus-h', Math.max(80, Math.floor((panel.clientHeight - titleH) / 2) - 16) + 'px');
+}
+if ('ResizeObserver' in window) new ResizeObserver(layoutIllus).observe(panels);
+else window.addEventListener('resize', layoutIllus);
+
+// Нижняя граница заголовка колонки и закреплённой картинки (если есть):
+// выше неё текст закрыт.
+function coveredTop(panel) {
+  const pr = panel.getBoundingClientRect();
+  const title = panel.querySelector('.panel-title');
+  let top = title.getBoundingClientRect().bottom;
+  panel.querySelectorAll('figure.illus').forEach(f => {
+    const r = f.getBoundingClientRect();
+    if (r.top <= top + 1 && r.bottom > top) top = r.bottom;
+  });
+  return top - pr.top;
 }
 
 function renderChapter(idx) {
@@ -318,6 +372,7 @@ function renderChapter(idx) {
   const at = (key, i, pos) => imgs.filter(im => im[key] === i && im.pos === pos);
 
   origContent.innerHTML = '';
+  let w = sectionWriter(origContent);
   let prevPara = null;
   for (let c = ch.cueStart; c < ch.cueEnd; c++) {
     const div = document.createElement('div');
@@ -327,12 +382,13 @@ function renderChapter(idx) {
     div.dataset.i = c;
     div.textContent = cues[c].text;
     div.addEventListener('click', () => seek(cues[c].start, true));
-    at('orig', c, 'before').forEach(im => origContent.appendChild(makeFigure(im)));
-    origContent.appendChild(div);
-    at('orig', c, 'after').forEach(im => origContent.appendChild(makeFigure(im)));
+    at('orig', c, 'before').forEach(w.figure);
+    w.line(div);
+    at('orig', c, 'after').forEach(w.figure);
   }
 
   transContent.innerHTML = '';
+  w = sectionWriter(transContent);
   prevPara = null;
   ch.ruLines.forEach((rl, ri) => {
     const div = document.createElement('div');
@@ -342,9 +398,9 @@ function renderChapter(idx) {
     div.dataset.i = ri;
     div.textContent = rl.text;
     div.addEventListener('click', () => seek(rl.start, true));
-    at('tr', ri, 'before').forEach(im => transContent.appendChild(makeFigure(im)));
-    transContent.appendChild(div);
-    at('tr', ri, 'after').forEach(im => transContent.appendChild(makeFigure(im)));
+    at('tr', ri, 'before').forEach(w.figure);
+    w.line(div);
+    at('tr', ri, 'after').forEach(w.figure);
   });
 
   renderChapterNav(idx);
@@ -385,12 +441,16 @@ function goToChapter(idx) {
 
 // Не scrollIntoView: тот прокручивает и все предки, включая окно, и на iPad
 // из-за этого шапка уезжает. Прокручиваем только саму колонку.
+// Центрируем в видимой части: ниже заголовка и закреплённой картинки секции.
 function centerInPanel(el, instant) {
   const panel = el.closest('.panel');
   if (!panel.offsetParent) return;
   const pr = panel.getBoundingClientRect();
   const er = el.getBoundingClientRect();
-  const top = panel.scrollTop + (er.top - pr.top) - (panel.clientHeight - er.height) / 2;
+  const sec = el.closest('.illus-sec');
+  const fig = sec && sec.querySelector('figure.illus');
+  const off = panel.querySelector('.panel-title').offsetHeight + (fig ? fig.offsetHeight : 0);
+  const top = panel.scrollTop + (er.top - pr.top) - off - (panel.clientHeight - off - er.height) / 2;
   panel.scrollTo({ top: Math.max(0, top), behavior: instant ? 'auto' : 'smooth' });
 }
 
@@ -452,6 +512,7 @@ function applyLang(mode) {
   panels.classList.toggle('only-trans', mode === 'trans');
   langSelect.value = mode;
   lsSet('lang', mode);
+  layoutIllus();
   panels.querySelectorAll('.line.current').forEach(el => centerInPanel(el, true));
 }
 langSelect.addEventListener('change', () => applyLang(langSelect.value));
@@ -488,7 +549,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) saveP
 // ---- Ссылка на место: #t=<секунды> ----
 function isVisibleIn(el, panel) {
   const pr = panel.getBoundingClientRect(), er = el.getBoundingClientRect();
-  return er.bottom > pr.top + 30 && er.top < pr.bottom;
+  return er.bottom > pr.top + coveredTop(panel) + 4 && er.top < pr.bottom;
 }
 // Место = текущая строка, если её видно; иначе первая видимая строка колонки
 // (пользователь пролистал текст на паузе).
@@ -570,6 +631,7 @@ applyFontSize();
   panels.classList.toggle('only-orig', lang === 'orig');
   panels.classList.toggle('only-trans', lang === 'trans');
   langSelect.value = ['both', 'orig', 'trans'].includes(lang) ? lang : 'both';
+  layoutIllus();
 }
 if (!openFromHash()) {
   let pos = null;
