@@ -69,6 +69,9 @@
   a.btn:hover { border-color: var(--accent); color: var(--accent); }
   button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   audio { flex: 1 1 260px; min-width: 220px; height: 32px; }
+  /* Кнопка «свернуть шапку»: остаются только название, плеер и сама кнопка */
+  #headerToggle { flex: 0 0 auto; padding: 5px 10px; }
+  header.compact > :not(h1):not(audio):not(#headerToggle) { display: none; }
   .ctrl-group { display: flex; gap: 6px; align-items: center; }
   .ctrl-group label { font-size: 12px; color: var(--muted); }
 
@@ -153,8 +156,10 @@
 
   @media (max-width: 700px) {
     .panel { padding: 16px 14px 40vh 14px; }
+    /* название, плеер и кнопка сворачивания -- в одну строку */
+    header h1 { flex: 0 1 auto; min-width: 0; max-width: 34vw; }
+    audio { flex: 1 1 150px; min-width: 150px; }
     .panel-title { top: -16px; margin: -16px -14px 12px -14px; padding: 8px 14px; }
-    header h1 { max-width: 100%; }
   }
 </style>
 </head>
@@ -163,6 +168,7 @@
   <header>
     <h1>__HEADER_TITLE__</h1>
     <audio id="audio" controls preload="metadata" src="__AUDIO_SRC__"></audio>
+    <button id="headerToggle" aria-expanded="true" title="Свернуть панель">▲</button>
     <div class="ctrl-group">
       <label for="chapterSelect">Глава:</label>
       <select id="chapterSelect"></select>
@@ -517,6 +523,18 @@ function applyLang(mode) {
 }
 langSelect.addEventListener('change', () => applyLang(langSelect.value));
 
+// Свернуть шапку до строки с плеером (место на телефоне)
+const header = document.querySelector('header');
+const headerToggle = $('headerToggle');
+function applyHeader(compact) {
+  header.classList.toggle('compact', compact);
+  headerToggle.textContent = compact ? '▼' : '▲';
+  headerToggle.title = compact ? 'Показать панель' : 'Свернуть панель';
+  headerToggle.setAttribute('aria-expanded', compact ? 'false' : 'true');
+  lsSet('compact', compact ? '1' : '0');
+}
+headerToggle.addEventListener('click', () => applyHeader(!header.classList.contains('compact')));
+
 function applyFontSize() {
   document.documentElement.style.setProperty('--font-size', fontSize + 'px');
   lsSet('font', fontSize);
@@ -624,6 +642,7 @@ document.addEventListener('keydown', e => {
 
 // ---- init ----
 applyFontSize();
+applyHeader(lsGet('compact', '0') === '1');
 {
   const r = lsGet('rate', '1');
   if ([...rateSelect.options].some(o => o.value === r)) { rateSelect.value = r; audio.playbackRate = parseFloat(r); }
