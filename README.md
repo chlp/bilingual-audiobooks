@@ -62,6 +62,7 @@ guide/                 процесс, иллюстрации, форматы, �
 examples/<slug>/       открытые книги-примеры (исходники)
 docs/                  сайт GitHub Pages: каталог + собранные примеры
 books/                 личные книги (в .gitignore)
+web/                   личный сайт: каталог + собранные книги из books/ (в .gitignore)
 voices/                голоса Piper (в .gitignore)
 ```
 

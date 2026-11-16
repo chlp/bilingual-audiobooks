@@ -13,6 +13,9 @@
 # Голоса Piper (большие, скачиваются tools/get_voice.sh)
 /voices/
 
+# Личный сайт: tools/publish.py books/<slug> -> web/<slug>/ + web/index.html
+/web/
+
 # Окружения
 .venv-*/
 __pycache__/

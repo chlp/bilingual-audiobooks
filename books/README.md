@@ -13,6 +13,6 @@ books/<slug>/
   illustrations/     bible.md, refs/, scenes.json, chNN/, web/
   audio.mp3          аудио книги
   index.html         плеер; на сайт: index.html + audio.mp3 + illustrations/web/ + pdf/
-                     (tools/publish.py books/<slug> --out <папка>)
+                     (tools/publish.py books/<slug> -> web/<slug>/)
   extras/            всё прочее (Yoto, старые версии)
 ```

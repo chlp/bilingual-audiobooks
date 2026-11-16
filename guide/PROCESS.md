@@ -140,8 +140,22 @@ PDF собирать до `build_html.py` (или пересобрать пле�
 index.html  audio.mp3  illustrations/web/  pdf/
 ```
 
-Собрать эту папку: `python3 tools/publish.py books/my-book --out ~/site/my-book`
-(папка перезаписывается). Сервер должен отдавать mp3 с поддержкой Range
+Личный сайт — папка `web/` в корне репозитория (в .gitignore):
+
+```bash
+python3 tools/publish.py books/my-book   # -> web/my-book/ + web/index.html (список книг)
+```
+
+```
+web/
+  index.html           список книг (каталог вписан в страницу, открывается и с диска)
+  catalog.json
+  favicon.svg  apple-touch-icon.png
+  my-book/             index.html  audio.mp3  illustrations/web/  pdf/
+```
+
+Папку книги скрипт перезаписывает, карточку в каталоге обновляет. `web/`
+целиком заливается на свой хостинг (rsync, Файлы на iPad). Сервер должен отдавать mp3 с поддержкой Range
 (обычные nginx/Apache/Caddy/GitHub Pages умеют), иначе не работает перемотка.
 Через `file://` некоторые браузеры не перематывают большие mp3 — тогда
 `tools/serve.py`.
@@ -156,8 +170,10 @@ index.html  audio.mp3  illustrations/web/  pdf/
 лицензия, голос с открытой лицензией). Такие книги живут в `examples/`:
 
 ```bash
-python3 tools/publish.py examples/my-story   # -> docs/books/my-story/ (+ pdf/) + docs/catalog.json
+python3 tools/publish.py examples/my-story           # -> docs/books/my-story/ + docs/index.html
+python3 tools/publish.py examples/my-story --to web  # тот же пример ещё и в личный web/
 ```
 
-`docs/` — сайт GitHub Pages; главная (`docs/index.html`) рисует список
-книг из `catalog.json`.
+`docs/` — сайт GitHub Pages, устроен как `web/`, только книги лежат в
+`docs/books/`. Страница списка книг для обоих сайтов собирается из шаблона
+`player/catalog.html`; книги из `books/` скрипт в `docs/` не пускает.

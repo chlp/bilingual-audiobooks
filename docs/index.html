@@ -47,12 +47,14 @@
   <footer>Как сделать такую книжку: <a href="https://github.com/chlp/bilingual-audiobooks">github.com/chlp/bilingual-audiobooks</a></footer>
 </main>
 <script>
-fetch('catalog.json').then(r => r.json()).then(books => {
+// Каталог вписывает tools/publish.py (страница работает и без сервера, через file://)
+const CATALOG = [{"slug": "ella-och-draken", "href": "books/ella-och-draken/", "title": "Ella och den blå draken", "subtitle": "Элла и синий воздушный змей", "langs": "SV / RU", "chapters": 3, "minutes": 3, "cover": "books/ella-och-draken/cover.jpg", "about": "Короткая сказка-пример (3 главы, ~3 мин). Текст написан для этого репозитория, иллюстрации — Codex по библии персонажей, озвучка — Piper TTS, голос sv_SE-nst-medium (CC0)."}];
+Promise.resolve(CATALOG).then(books => {
   const grid = document.getElementById('grid');
   for (const b of books) {
     const a = document.createElement('a');
     a.className = 'card';
-    a.href = `books/${encodeURIComponent(b.slug)}/`;
+    a.href = b.href;
     const cover = document.createElement('div');
     cover.className = 'cover';
     if (b.cover) cover.style.backgroundImage = `url("${b.cover}")`; else cover.textContent = '📖';

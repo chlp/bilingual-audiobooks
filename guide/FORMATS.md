@@ -90,6 +90,8 @@ Nästa stycke. ||| Следующий абзац.
 вместо него можно `images.json` — тот же список, только `chapter`, `file`,
 `anchor`/`anchorOrig`, `pos`.
 
-## docs/catalog.json
+## web/catalog.json, docs/catalog.json
 
-Список карточек книг на сайте, пишет `tools/publish.py`.
+Список карточек книг на сайте, пишет `tools/publish.py` и вписывает его же
+в `index.html` сайта (шаблон `player/catalog.html`). `href` — папка книги
+относительно корня сайта.
