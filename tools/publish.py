@@ -48,6 +48,11 @@ def main():
     cover_rel = None
     if cover:
         src = book.path(cover)
+        ill = book.path("illustrations")
+        if src.startswith(ill + os.sep):  # картинка книги -> её уменьшенная копия из web/
+            src_web = os.path.join(ill, "web", os.path.splitext(os.path.relpath(src, ill))[0] + ".jpg")
+            if os.path.exists(src_web):
+                src = src_web
         cover_rel = "cover" + os.path.splitext(src)[1]
         shutil.copy2(src, os.path.join(dst, cover_rel))
     else:

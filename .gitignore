@@ -17,3 +17,6 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Варианты референсов примеров: в git только выбранные refs/<id>.png и контакт-лист _variants.png
+/examples/*/illustrations/refs/*-v[0-9]*.png

@@ -1,8 +1,9 @@
 # Библия иллюстраций: Ella och den blå draken
 
-Статус: **DRAFT** — референсы ещё не выбраны. После выбора вариантов статус
-каждого элемента меняется на `LOCKED`, а описание больше не правится (иначе
-картинки разойдутся с уже нарисованными).
+Статус: **LOCKED** (2026-11-16): `refs/characters.png` = characters-v2,
+`refs/loc-stuga.png` = loc-stuga-v2, `refs/loc-kulle.png` = loc-kulle-v1,
+`refs/prop-drake.png` = prop-drake-v2. Описания ниже больше не правятся —
+иначе картинки разойдутся с уже нарисованными.
 
 Всё, что повторяется в книге больше одного раза, описано здесь один раз и
 получает свой референс-лист. Сцены (`scenes.json`) ссылаются на эти листы по
@@ -18,7 +19,7 @@ gentle textured paper, expressive faces, Swedish countryside, late summer
 Негатив: `text, letters, watermark, extra fingers, deformed hands, photorealistic, 3d render, scary`.
 Формат сцен: 3:2, горизонтальный.
 
-## Персонажи — лист `refs/characters.png`
+## Персонажи — лист `refs/characters.png` (LOCKED)
 
 | id | Кто | Главы | Описание для промпта |
 |---|---|---|---|
@@ -33,15 +34,15 @@ gentle textured paper, expressive faces, Swedish countryside, late summer
 
 | id | Где | Главы | Описание | Лист |
 |---|---|---|---|---|
-| `loc-stuga` | красный домик дедушки у озера | 2–3 | `a small red Swedish wooden cottage with white corner boards, a green front door, a three-step wooden porch, an old apple tree beside it, a shiny lake behind` | `refs/loc-stuga.png` |
-| `loc-kulle` | холм за домиком | 2–3 | `a grassy hill behind the cottage with one big round grey boulder on top, view over the lake and the red cottage below` | `refs/loc-kulle.png` |
+| `loc-stuga` | красный домик дедушки у озера | 2–3 | `a small red Swedish wooden cottage with white corner boards, a green front door, a three-step wooden porch, an old apple tree beside it, a shiny lake behind` | `refs/loc-stuga.png` (LOCKED) |
+| `loc-kulle` | холм за домиком | 2–3 | `a grassy hill behind the cottage with one big round grey boulder on top, view over the lake and the red cottage below` | `refs/loc-kulle.png` (LOCKED) |
 | `loc-ellas-hus` | жёлтый дом Эллы в городе | 1 | `a yellow two-storey town house with a white front door and a brass mail slot` | — (одна сцена, лист не нужен) |
 
 ## Предметы
 
 | id | Что | Главы | Описание | Лист |
 |---|---|---|---|---|
-| `prop-drake` | синий воздушный змей | 1–3 | `a diamond-shaped blue kite with a smiling yellow sun painted in the middle and a long yellow ribbon tail with small bows` | `refs/prop-drake.png` |
+| `prop-drake` | синий воздушный змей | 1–3 | `a diamond-shaped blue kite with a smiling yellow sun painted in the middle and a long yellow ribbon tail with small bows` | `refs/prop-drake.png` (LOCKED) |
 | `prop-stege` | деревянная лестница | 3 | эпизодический, описывается в сцене | — |
 
 ## Правила для сцен

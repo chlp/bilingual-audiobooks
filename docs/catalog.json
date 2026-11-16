@@ -6,7 +6,7 @@
     "langs": "SV / RU",
     "chapters": 3,
     "minutes": 3,
-    "cover": null,
-    "about": "Короткая сказка-пример (3 главы, ~3 мин). Текст написан для этого репозитория, озвучка — Piper TTS, голос sv_SE-nst-medium (CC0)."
+    "cover": "books/ella-och-draken/cover.jpg",
+    "about": "Короткая сказка-пример (3 главы, ~3 мин). Текст написан для этого репозитория, иллюстрации — Codex по библии персонажей, озвучка — Piper TTS, голос sv_SE-nst-medium (CC0)."
   }
 ]
