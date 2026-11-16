@@ -49,6 +49,28 @@ python3 tools/new_book.py my-story --title "Min saga"
 .venv-tts/bin/python tools/serve.py books/my-story      # http://localhost:8934/
 ```
 
+## Свой сайт с книгами: web/
+
+Готовые книги собираются в папку `web/` (в `.gitignore`): список книг и по
+папке на книгу, в каждой только то, что нужно плееру.
+
+```bash
+python3 tools/build_pdf.py books/my-story               # PDF (по желанию, до build_html)
+python3 tools/build_html.py books/my-story              # плеер; найдёт pdf/ и даст ссылки
+python3 tools/publish.py books/my-story                 # -> web/my-story/ + web/index.html
+python3 tools/serve.py web                              # http://localhost:8934/
+```
+
+```
+web/
+  index.html  catalog.json      список книг
+  my-story/                     index.html  audio.mp3  illustrations/web/  pdf/
+```
+
+`web/` целиком заливается на любой хостинг с поддержкой Range для mp3
+(nginx, Caddy, Apache) или копируется на iPad. Публичный сайт примеров
+(`docs/`, GitHub Pages) собирается той же командой из `examples/<slug>`.
+
 Нужны macOS (для Whisper — Apple Silicon), Python 3, `ffmpeg`, Google
 Chrome (PDF), Claude Code и приложение Codex со skill `imagegen`.
 

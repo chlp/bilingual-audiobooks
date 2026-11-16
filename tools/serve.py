@@ -3,6 +3,7 @@
 `python3 -m http.server` (без Range) браузеры часто не дают перематывать mp3.
 
     python3 tools/serve.py books/<slug>        # http://localhost:8934/
+    python3 tools/serve.py web                 # личный сайт со всеми книгами
     python3 tools/serve.py docs --port 8000    # предпросмотр GitHub Pages
 """
 import argparse
