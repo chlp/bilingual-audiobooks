@@ -8,7 +8,8 @@ PDF книги из того же data.json, что и плеер, с иллюс
 Вёрстка -- HTML, печать через headless Google Chrome (нужен Chrome; путь
 можно задать --chrome). Параллельный режим: строки «абзац оригинала --
 абзац перевода», у каждого абзаца мелкий таймкод аудио, чтобы по бумажной
-книге легко найти место в записи. Результат: build/<slug>-<mode>.pdf.
+книге легко найти место в записи. Результат: pdf/<slug>-<mode>.pdf (рядом с
+плеером: build_html.py сам добавит в шапку плеера ссылки на все pdf/*.pdf).
 """
 import argparse
 import html
@@ -237,7 +238,7 @@ def main():
             parts.append("</section>")
     parts.append("</body></html>")
 
-    out = os.path.abspath(args.out or book.path("build", f"{book['slug']}-{args.mode}.pdf"))
+    out = os.path.abspath(args.out or book.path("pdf", f"{book['slug']}-{args.mode}.pdf"))
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with tempfile.TemporaryDirectory() as td:
         hp = args.keep_html or os.path.join(td, "book.html")

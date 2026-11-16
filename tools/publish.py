@@ -1,15 +1,20 @@
 """
-Публикует собранную книгу на GitHub Pages сайта репозитория (папка docs/).
+Собирает из папки книги то, что нужно выложить на сайт, и только это.
 
-    python3 tools/publish.py examples/<slug>
+    python3 tools/publish.py examples/<slug>                # -> docs/books/<slug>/ + docs/catalog.json
+    python3 tools/publish.py books/<slug> --out ~/site/<slug>   # свой хостинг, каталог не трогается
 
-Копирует index.html, mp3 и уменьшенные иллюстрации (illustrations/web/) в
-docs/books/<slug>/ и добавляет/обновляет карточку книги в docs/catalog.json,
-по которому docs/index.html рисует список книг. Обложка карточки -- поле
-"cover" в book.json (путь к картинке в папке книги), иначе первая иллюстрация.
+Копирует index.html, mp3, уменьшенные иллюстрации (illustrations/web/) и
+pdf/*.pdf. Не копирует build/ (data.json уже встроен в index.html, кеш TTS
+и куски аудио сайту не нужны), исходные PNG, тексты, библию.
 
-Публикуйте только то, на что есть права: свои тексты, общественное
-достояние, открытые лицензии. Личные книги остаются в books/ (gitignore).
+Без --out книга публикуется на GitHub Pages репозитория: копия в
+docs/books/<slug>/ и карточка в docs/catalog.json, по которому
+docs/index.html рисует список книг. Обложка карточки -- поле "cover" в
+book.json (путь к картинке в папке книги), иначе первая иллюстрация.
+На Pages -- только то, на что есть права: свои тексты, общественное
+достояние, открытые лицензии. Книги из books/ туда не публикуются, для них
+есть --out (свой сервер; это ваша ответственность, куда вы их кладёте).
 """
 import argparse
 import glob
@@ -25,14 +30,17 @@ from bookcfg import REPO, Book  # noqa: E402
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("book")
+    ap.add_argument("--out", help="папка для своего хостинга (будет перезаписана); без неё -- docs/ для GitHub Pages")
     args = ap.parse_args()
     book = Book(args.book)
-    if os.path.relpath(book.dir, REPO).startswith("books" + os.sep):
-        raise SystemExit("books/ -- личные книги, публиковать из examples/ (см. docstring)")
+    if not args.out and os.path.relpath(book.dir, REPO).startswith("books" + os.sep):
+        raise SystemExit("books/ -- личные книги: на GitHub Pages не публикуются, используйте --out (см. docstring)")
 
     slug = book["slug"]
-    dst = os.path.join(REPO, "docs", "books", slug)
+    dst = os.path.abspath(os.path.expanduser(args.out)) if args.out else os.path.join(REPO, "docs", "books", slug)
     if os.path.exists(dst):
+        if os.listdir(dst) and not os.path.exists(os.path.join(dst, "index.html")):
+            raise SystemExit(f"{dst} не пустая и не похожа на прошлую публикацию (нет index.html) -- не трогаю")
         shutil.rmtree(dst)
     os.makedirs(dst)
 
@@ -43,6 +51,18 @@ def main():
     web = book.path("illustrations", "web")
     if os.path.isdir(web):
         shutil.copytree(web, os.path.join(dst, os.path.relpath(web, out_dir)))
+    pdfs = glob.glob(os.path.join(book.path("pdf"), "*.pdf"))
+    for p in pdfs:
+        rel = os.path.relpath(p, out_dir)
+        os.makedirs(os.path.dirname(os.path.join(dst, rel)), exist_ok=True)
+        shutil.copy2(p, os.path.join(dst, rel))
+
+    def total_size():
+        return sum(os.path.getsize(p) for p in glob.glob(os.path.join(dst, "**"), recursive=True) if os.path.isfile(p))
+
+    if args.out:
+        print(f"{dst}: {total_size() / 1e6:.1f} МБ (PDF: {len(pdfs)})")
+        return
 
     cover = book.get("cover")
     cover_rel = None
@@ -81,8 +101,7 @@ def main():
     with open(cat_path, "w", encoding="utf-8") as f:
         json.dump(catalog, f, ensure_ascii=False, indent=2)
         f.write("\n")
-    size = sum(os.path.getsize(p) for p in glob.glob(os.path.join(dst, "**"), recursive=True) if os.path.isfile(p))
-    print(f"docs/books/{slug}/: {size / 1e6:.1f} МБ; docs/catalog.json: {len(catalog)} книг")
+    print(f"docs/books/{slug}/: {total_size() / 1e6:.1f} МБ (PDF: {len(pdfs)}); docs/catalog.json: {len(catalog)} книг")
 
 
 if __name__ == "__main__":

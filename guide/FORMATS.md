@@ -18,6 +18,7 @@
 | `text` | `text` | папка `chNN.txt` (маршруты B/C) |
 | `illustrations` | `illustrations` | см. ILLUSTRATIONS.md |
 | `out` | `index.html` | страница плеера |
+| `pdf` | `pdf` | папка PDF; все `*.pdf` в ней плеер показывает кнопками в шапке |
 | `footerHint` | подсказка про клики | подвал плеера |
 | `origChapterTitles` | — | `{"1": "Vilse i centrum"}` — ручные названия глав оригинала |
 | `tts.voice` | `voices/sv_SE-lisa-medium.onnx` | голос Piper |

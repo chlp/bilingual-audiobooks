@@ -62,6 +62,11 @@
     border: 1px solid var(--border); background: var(--bg); color: var(--text);
     cursor: pointer;
   }
+  a.btn {
+    font-size: 13px; padding: 5px 9px; border-radius: 6px; text-decoration: none;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  a.btn:hover { border-color: var(--accent); color: var(--accent); }
   button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   audio { flex: 1 1 260px; min-width: 220px; height: 32px; }
   .ctrl-group { display: flex; gap: 6px; align-items: center; }
@@ -178,6 +183,7 @@
       <button id="fontPlus">A+</button>
     </div>
     <button id="copyLinkBtn" title="Скопировать ссылку на текущее место">Ссылка на место</button>
+    __PDF_LINKS__
   </header>
   <div id="panels">
     <div class="panel" id="origPanel">

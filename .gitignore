@@ -7,6 +7,7 @@
 /examples/*/audio.mp3
 /examples/*/index.html
 /examples/*/build/
+/examples/*/pdf/
 /examples/*/illustrations/web/
 
 # Голоса Piper (большие, скачиваются tools/get_voice.sh)

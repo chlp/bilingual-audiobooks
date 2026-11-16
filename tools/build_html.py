@@ -15,6 +15,7 @@ scenes.json / images.json -- список {"chapter": N, "file": "ch09/01.png",
 предупреждением.
 """
 import argparse
+import glob
 import base64
 import html
 import json
@@ -111,6 +112,30 @@ def resolve_images(book, data):
     return out
 
 
+PDF_LABELS = {"parallel": "{o} + {t}", "orig": "{o}", "trans": "{t}"}
+
+
+def pdf_links(book):
+    """pdf/*.pdf рядом с плеером -> кнопки «PDF» в шапке (пусто, если PDF нет)."""
+    out_dir = os.path.dirname(book.path("out"))
+    files = sorted(glob.glob(os.path.join(book.path("pdf"), "*.pdf")))
+    if not files:
+        return ""
+    order = {m: i for i, m in enumerate(PDF_LABELS)}
+    links = []
+    for f in files:
+        mode = os.path.splitext(os.path.basename(f))[0].rsplit("-", 1)[-1]
+        label = PDF_LABELS.get(mode, os.path.splitext(os.path.basename(f))[0])
+        label = label.format(o=book["origShort"], t=book["transShort"])
+        rel = os.path.relpath(f, out_dir).replace(os.sep, "/")
+        links.append((order.get(mode, 99), label, rel))
+    links.sort()
+    a = "".join(f'<a class="btn" href="{html.escape(r)}" target="_blank" rel="noopener" '
+                f'title="Открыть PDF">{html.escape(l)}</a>' for _, l, r in links)
+    print("PDF: " + ", ".join(r for _, _, r in links))
+    return f'<div class="ctrl-group"><label>PDF:</label>{a}</div>'
+
+
 def script_json(obj):
     # "</script>" внутри текста книги не должен закрыть тег
     return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
@@ -144,6 +169,7 @@ def main():
         "__ORIG_SHORT__": e(book["origShort"]),
         "__TRANS_SHORT__": e(book["transShort"]),
         "__FOOTER_HINT__": e(book["footerHint"]),
+        "__PDF_LINKS__": pdf_links(book),
         "__CONFIG_JSON__": script_json(cfg),
         "__IMAGES_JSON__": script_json(images),
         "__DATA_JSON__": script_json(data),  # последним: в тексте книги могут встретиться плейсхолдеры

@@ -123,15 +123,26 @@ python3 tools/align_literary.py --srt books/my-book/build/sv.srt \
 
 ```bash
 python3 tools/build_html.py books/my-book                  # index.html рядом с audio.mp3
-python3 tools/build_pdf.py books/my-book                   # build/my-book-parallel.pdf
+python3 tools/build_pdf.py books/my-book                   # pdf/my-book-parallel.pdf
 python3 tools/build_pdf.py books/my-book --mode orig       # книжка только на шведском
 python3 tools/build_pdf.py books/my-book --engine pagedjs  # + в шапке страницы глава и таймкод страницы (node/npx)
 python3 tools/split_chapters.py books/my-book              # build/tracks/NN - Глава N.mp3 (Yoto и т.п.)
 python3 tools/serve.py books/my-book                       # http://localhost:8934/
 ```
 
-Для просмотра на iPad достаточно положить `index.html`, `audio.mp3` и
-`illustrations/web/` в одну папку (Файлы, AirDrop, любой хостинг).
+PDF собирать до `build_html.py` (или пересобрать плеер после): плеер сам
+находит `pdf/*.pdf` и показывает в шапке кнопки «PDF: SV + RU / SV / RU».
+
+Что класть на сайт или на iPad — только это, остальное сайту не нужно
+(`build/data.json` уже встроен в `index.html`):
+
+```
+index.html  audio.mp3  illustrations/web/  pdf/
+```
+
+Собрать эту папку: `python3 tools/publish.py books/my-book --out ~/site/my-book`
+(папка перезаписывается). Сервер должен отдавать mp3 с поддержкой Range
+(обычные nginx/Apache/Caddy/GitHub Pages умеют), иначе не работает перемотка.
 Через `file://` некоторые браузеры не перематывают большие mp3 — тогда
 `tools/serve.py`.
 
@@ -145,7 +156,7 @@ python3 tools/serve.py books/my-book                       # http://localhost:89
 лицензия, голос с открытой лицензией). Такие книги живут в `examples/`:
 
 ```bash
-python3 tools/publish.py examples/my-story   # -> docs/books/my-story/ + docs/catalog.json
+python3 tools/publish.py examples/my-story   # -> docs/books/my-story/ (+ pdf/) + docs/catalog.json
 ```
 
 `docs/` — сайт GitHub Pages; главная (`docs/index.html`) рисует список

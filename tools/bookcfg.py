@@ -19,6 +19,7 @@ DEFAULTS = {
     "text": "text",
     "illustrations": "illustrations",
     "out": "index.html",
+    "pdf": "pdf",
     "footerHint": "Клик по строке — переход к этому месту в аудио. "
                   "«Ссылка на место» копирует ссылку, которая откроет книгу здесь же.",
     "tts": {},
